@@ -1,35 +1,35 @@
-FROM ubuntu:24.04
+FROM --platform=linux/amd64 ubuntu:22.04
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    TZ=UTC
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt update -y && apt install --no-install-recommends -y xfce4 xfce4-goodies tigervnc-standalone-server novnc websockify sudo xterm init systemd snapd vim net-tools curl wget git tzdata
+RUN apt update -y && apt install -y dbus-x11 x11-utils x11-xserver-utils x11-apps
+RUN apt install software-properties-common -y
+RUN add-apt-repository ppa:mozillateam/ppa -y
+RUN echo 'Package: *' >> /etc/apt/preferences.d/mozilla-firefox
+RUN echo 'Pin: release o=LP-PPA-mozillateam' >> /etc/apt/preferences.d/mozilla-firefox
+RUN echo 'Pin-Priority: 1001' >> /etc/apt/preferences.d/mozilla-firefox
+RUN echo 'Unattended-Upgrade::Allowed-Origins:: "LP-PPA-mozillateam:jammy";' | tee /etc/apt/apt.conf.d/51unattended-upgrades-firefox
+RUN apt update -y && apt install -y firefox
+RUN apt update -y && apt install -y xubuntu-icon-theme
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    xfce4 \
-    xfce4-goodies \
-    dbus-x11 \
-    xvfb \
-    x11vnc \
-    novnc \
-    websockify \
-    xterm \
-    mousepad \
-    sudo \
-    util-linux \
-    ca-certificates \
-    curl \
-    wget \
-    procps \
-    iproute2 \
-    net-tools \
-    && rm -rf /var/lib/apt/lists/*
+# --- Windows 11 theme (GTK theme + matching icon theme) ---
+RUN apt update -y && apt install -y sassc gnome-themes-extra gtk2-engines-murrine
+RUN git clone https://github.com/yeyushengfan258/Windows11-gtk-theme.git /tmp/win11-gtk-theme && \
+    cd /tmp/win11-gtk-theme && ./install.sh -d /usr/share/themes -n Win11 -t default -c standard && \
+    rm -rf /tmp/win11-gtk-theme
+RUN git clone https://github.com/yeyushengfan258/Win11-icon-theme.git /tmp/win11-icon-theme && \
+    cd /tmp/win11-icon-theme && ./install.sh -d /usr/share/icons -n Win11 && \
+    rm -rf /tmp/win11-icon-theme
+RUN mkdir -p /etc/xdg/autostart && \
+    echo "[Desktop Entry]" > /etc/xdg/autostart/set-win-theme.desktop && \
+    echo "Type=Application" >> /etc/xdg/autostart/set-win-theme.desktop && \
+    echo "Exec=sh -c \"xfconf-query -c xsettings -p /Net/ThemeName -s Win11; xfconf-query -c xsettings -p /Net/IconThemeName -s Win11; xfconf-query -c xfwm4 -p /general/theme -s Win11\"" >> /etc/xdg/autostart/set-win-theme.desktop && \
+    echo "Name=Set Win Theme" >> /etc/xdg/autostart/set-win-theme.desktop
+# --- end Windows 11 theme ---
 
-# Ubuntu 24.04 already contains the "ubuntu" user.
-RUN echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu && \
-    chmod 0440 /etc/sudoers.d/ubuntu
-
-COPY start.sh /usr/local/bin/start.sh
-RUN chmod +x /usr/local/bin/start.sh
-
-EXPOSE 8080
-
-ENTRYPOINT ["/usr/local/bin/start.sh"]
+RUN echo '<meta http-equiv="refresh" content="0; url=vnc.html?autoconnect=true&resize=scale">' > /usr/share/novnc/index.html && \
+    echo '<meta http-equiv="refresh" content="0; url=vnc.html?autoconnect=true&resize=scale">' > /usr/share/novnc/vnc_lite.html
+RUN touch /root/.Xauthority
+EXPOSE 5901
+EXPOSE 6080
+CMD bash -c "vncserver -localhost no -SecurityTypes None -geometry 1920x1080 --I-KNOW-THIS-IS-INSECURE && openssl req -new -subj "/C=JP" -x509 -days 365 -nodes -out self.pem -keyout self.pem && websockify -D --web=/usr/share/novnc/ --cert=self.pem 6080 localhost:5901 && tail -f /dev/null"

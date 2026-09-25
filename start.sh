@@ -13,25 +13,29 @@ export XDG_RUNTIME_DIR="/tmp/runtime-ubuntu"
 mkdir -p "$XDG_RUNTIME_DIR"
 chmod 700 "$XDG_RUNTIME_DIR"
 
-# Railway containers are ephemeral. If no password was supplied, generate one
-# and print it once to the deployment logs.
+# Railway containers are ephemeral. If no password is supplied,
+# generate one and print it once to the deployment logs.
 if [[ -z "${VNC_PASSWORD:-}" ]]; then
-    VNC_PASSWORD="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 12 || true)"
-    VNC_PASSWORD="${VNC_PASSWORD:-UbuntuVNC123}"
+    VNC_PASSWORD="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 16 || true)"
+    VNC_PASSWORD="${VNC_PASSWORD:-UbuntuVNC123456}"
 fi
 
 echo "============================================================"
 echo "Ubuntu XFCE Desktop is starting"
-echo "noVNC port : ${PORT}"
-echo "VNC password: ${VNC_PASSWORD}"
+echo "noVNC HTTP port : ${PORT}"
+echo "VNC password    : ${VNC_PASSWORD}"
+echo "Screen          : ${SCREEN_SIZE}"
 echo "============================================================"
 
-# Clean up stale runtime files if the container is restarted.
 rm -f "/tmp/.X${DISPLAY_NUM}-lock" "/tmp/.X11-unix/X${DISPLAY_NUM}" 2>/dev/null || true
 mkdir -p /tmp/.X11-unix
 
-# Virtual display.
-Xvfb "$DISPLAY" -screen 0 "$SCREEN_SIZE" -ac +extension GLX +render -noreset &
+Xvfb "$DISPLAY" \
+    -screen 0 "$SCREEN_SIZE" \
+    -ac \
+    +extension GLX \
+    +render \
+    -noreset &
 XVFB_PID=$!
 
 cleanup() {
@@ -41,7 +45,6 @@ trap cleanup EXIT INT TERM
 
 sleep 1
 
-# Start XFCE as the unprivileged user.
 runuser -u ubuntu -- env \
     DISPLAY="$DISPLAY" \
     XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \
@@ -50,7 +53,6 @@ XFCE_PID=$!
 
 sleep 3
 
-# VNC server.
 x11vnc \
     -display "$DISPLAY" \
     -rfbport "$VNC_PORT" \
@@ -66,7 +68,6 @@ VNC_PID=$!
 
 sleep 2
 
-# noVNC/WebSocket proxy. Railway expects the HTTP service on $PORT.
 exec websockify \
     --web=/usr/share/novnc \
     --heartbeat=30 \

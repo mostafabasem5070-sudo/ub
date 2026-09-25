@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xterm \
     mousepad \
     sudo \
+    util-linux \
     ca-certificates \
     curl \
     wget \
@@ -22,8 +23,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     net-tools \
     && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -m -s /bin/bash ubuntu && \
-    echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu && \
+# Ubuntu 24.04 already contains the "ubuntu" user.
+RUN echo "ubuntu ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/ubuntu && \
     chmod 0440 /etc/sudoers.d/ubuntu
 
 COPY start.sh /usr/local/bin/start.sh

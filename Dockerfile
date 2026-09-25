@@ -23,11 +23,24 @@ RUN git clone https://github.com/yeyushengfan258/Windows11-gtk-theme.git /tmp/wi
 RUN git clone https://github.com/yeyushengfan258/Win11-icon-theme.git /tmp/win11-icon-theme && \
     cd /tmp/win11-icon-theme && ./install.sh -d /usr/share/icons -n Win11 && \
     rm -rf /tmp/win11-icon-theme
-RUN mkdir -p /etc/xdg/autostart && \
-    echo "[Desktop Entry]" > /etc/xdg/autostart/set-win-theme.desktop && \
-    echo "Type=Application" >> /etc/xdg/autostart/set-win-theme.desktop && \
-    echo "Exec=sh -c \"xfconf-query -c xsettings -p /Net/ThemeName -s Win11; xfconf-query -c xsettings -p /Net/IconThemeName -s Win11; xfconf-query -c xfwm4 -p /general/theme -s Win11\"" >> /etc/xdg/autostart/set-win-theme.desktop && \
-    echo "Name=Set Win Theme" >> /etc/xdg/autostart/set-win-theme.desktop
+RUN mkdir -p /root/.config/xfce4/xfconf/xfce-perchannel-xml && \
+    printf '%s\n' \
+      '<?xml version="1.0" encoding="UTF-8"?>' \
+      '<channel name="xsettings" version="1.0">' \
+      '  <property name="Net" type="empty">' \
+      '    <property name="ThemeName" type="string" value="Win11"/>' \
+      '    <property name="IconThemeName" type="string" value="Win11"/>' \
+      '  </property>' \
+      '</channel>' \
+      > /root/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml && \
+    printf '%s\n' \
+      '<?xml version="1.0" encoding="UTF-8"?>' \
+      '<channel name="xfwm4" version="1.0">' \
+      '  <property name="general" type="empty">' \
+      '    <property name="theme" type="string" value="Win11"/>' \
+      '  </property>' \
+      '</channel>' \
+      > /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml
 # --- end Windows 11 theme ---
 
 RUN echo '<meta http-equiv="refresh" content="0; url=vnc.html?autoconnect=true&resize=scale">' > /usr/share/novnc/index.html && \

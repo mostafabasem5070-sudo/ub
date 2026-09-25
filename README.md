@@ -12,6 +12,12 @@ Ubuntu 22.04 + XFCE4 + Firefox + TigerVNC + noVNC, themed to look like Windows 1
 - Theme: Windows 11 GTK theme + matching icon set, applied automatically on login via
   an XFCE autostart entry (`xfconf-query`)
 
+## Files needed
+
+Put `Dockerfile` and `start.sh` in the same repo folder — the Dockerfile copies
+`start.sh` in at build time (`COPY start.sh /start.sh`) and uses it as the
+container's entrypoint.
+
 ## Build
 
 ```bash
@@ -34,9 +40,10 @@ for the VNC password you set.
 
 ## Environment variables
 
-| Variable        | Default    | Description                                             |
-|-----------------|------------|-----------------------------------------------------------|
-| `VNC_PASSWORD`  | `changeme` | Password required to connect over VNC / noVNC. **Always override this at runtime.** |
+| Variable       | Default      | Description                                             |
+|----------------|--------------|-----------------------------------------------------------|
+| `VNC_PASSWORD` | `changeme`   | Password required to connect over VNC / noVNC. **Always override this at runtime.** |
+| `SCREEN_SIZE`  | `1920x1080`  | Optional. Desktop resolution, e.g. `1366x768`.            |
 
 ```bash
 -e VNC_PASSWORD=your-strong-password
@@ -67,5 +74,9 @@ for the VNC password you set.
   for disposable/ephemeral desktop sessions (testing, demos, temporary remote
   browsing), not as persistent storage. Anything written inside the container is
   lost when it's removed.
-- Screen resolution is fixed at `1920x1080` in the `vncserver` command; edit the
-  `-geometry` flag in the Dockerfile's `CMD` to change it.
+- Screen resolution defaults to `1920x1080`; override it with the `SCREEN_SIZE`
+  env var, or edit the `-geometry` flag inside `start.sh`.
+- If deploy logs show `vncpasswd: command not found` or `tigervncpasswd: command
+  not found`, it means the `tigervnc-tools` package didn't get installed —
+  `start.sh` looks for either binary name and exits with a clear error if
+  neither is present, instead of crash-looping silently.
